@@ -5,13 +5,25 @@ export class MigrationsTable extends Table {
 
   async bootstrap() {
     let created = false
+
+    await this.knex.schema.dropTableIfExists(this.name)
+
     await this.knex.createTableIfNotExists(this.name, table => {
       table.increments('id')
       table.string('name')
       table.integer('batch')
-      table.timestamp('migrated_time')
+      table.timestamp('migration_time')
       created = true
     })
+
+    const hasIncorrectColumn = await this.knex.schema.hasColumn(this.name, 'migrated_time')
+
+    if (hasIncorrectColumn) {
+      await this.knex.schema.alterTable('knex_core_migrations', function (table) {
+        table.renameColumn('migrated_time', 'migration_time')
+      })
+    }
+
     return created
   }
 }

@@ -4,12 +4,14 @@ import { TYPES } from 'core/types'
 import { inject, injectable, tagged } from 'inversify'
 import Knex from 'knex'
 import _ from 'lodash'
+import path from 'path'
 
 import { patchKnex } from './helpers'
 import { Table } from './interfaces'
 import AllTables from './tables'
 
 export type DatabaseType = 'postgres' | 'sqlite'
+const migrationDir = path.resolve(__dirname, './migrations')
 
 @injectable()
 export default class Database {
@@ -21,7 +23,7 @@ export default class Database {
     @inject(TYPES.Logger)
     @tagged('name', 'Database')
     private logger: Logger
-  ) {}
+  ) { }
 
   async bootstrap() {
     await Promise.mapSeries(AllTables, async Tbl => {
@@ -32,6 +34,8 @@ export default class Database {
       }
       this.tables.push(table)
     })
+
+    await this.runMigrations()
   }
 
   async seedForTests() {
@@ -81,6 +85,11 @@ export default class Database {
   }
 
   runMigrations() {
-    // TODO
+    return this.knex.migrate.latest({
+      directory: migrationDir,
+      tableName: 'knex_core_migrations',
+      //@ts-ignore
+      loadExtensions: ['.js']
+    })
   }
 }
