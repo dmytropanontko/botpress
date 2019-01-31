@@ -24,9 +24,9 @@ export class ProcessingError extends Error {
   }
 }
 
-class DialogEngineError extends Error {}
-class FlowNotFoundError extends DialogEngineError {}
-class NodeNotFoundError extends DialogEngineError {}
+class DialogEngineError extends Error { }
+class FlowNotFoundError extends DialogEngineError { }
+class NodeNotFoundError extends DialogEngineError { }
 
 @injectable()
 export class DialogEngine {
@@ -39,11 +39,13 @@ export class DialogEngine {
     @inject(TYPES.FlowService) private flowService: FlowService,
     @inject(TYPES.InstructionProcessor) private instructionProcessor: InstructionProcessor,
     @inject(TYPES.HookService) private hookService: HookService
-  ) {}
+  ) { }
 
   public async processEvent(sessionId: string, event: IO.IncomingEvent): Promise<IO.IncomingEvent> {
     const botId = event.botId
     await this._loadFlows(botId)
+
+    // console.log('processEvent: ', event)
 
     const context = _.isEmpty(event.state.context) ? this.initializeContext(event) : event.state.context
     const currentFlow = this._findFlow(botId, context.currentFlow)
