@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import path from 'path'
 
 import { SDK } from '.'
 
@@ -39,6 +40,7 @@ export default class AnalyticsDb {
           table.unique(['date', 'name'])
         })
       })
+      .then(() => this.knex.runMigrations('analytics', path.resolve(__dirname, './migrations')))
       .then(() => this.knex)
   }
 
