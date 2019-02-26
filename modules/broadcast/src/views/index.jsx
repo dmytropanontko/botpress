@@ -31,6 +31,7 @@ import classnames from 'classnames'
 import _ from 'lodash'
 
 import DismissableAlert from './alert'
+import BroadcastForm from './modal'
 
 import style from './style.scss'
 
@@ -52,8 +53,7 @@ export default class BroadcastModule extends React.Component {
 
   state = {
     loading: true,
-    showModalForm: false,
-    broadcast: {}
+    showModalForm: false
   }
 
   getAxios() {
@@ -88,27 +88,6 @@ export default class BroadcastModule extends React.Component {
       })
   }
 
-  extractBroadcastFromModal() {
-    const { content, date, userTimezone, time, filteringConditions } = this.state.broadcast
-
-    if (!content) {
-      this.props.bp.toast.error('Content field is required.')
-
-      return
-    }
-
-    return {
-      date: moment(date).format('YYYY-MM-DD'),
-      time: moment()
-        .startOf('day')
-        .add(time, 'seconds')
-        .format('HH:mm'),
-      content: content,
-      timezone: userTimezone ? null : moment().format('Z'),
-      filters: filteringConditions
-    }
-  }
-
   closeModal = () => {
     this.setState({ showModalForm: false, error: null })
     return Promise.resolve(true)
@@ -126,35 +105,6 @@ export default class BroadcastModule extends React.Component {
       loading: false,
       error: err ? err.message : 'An unknown error occured'
     })
-  }
-
-  handleAddBroadcast = () => {
-    const broadcast = this.extractBroadcastFromModal()
-
-    if (!broadcast) {
-      return
-    }
-
-    this.getAxios()
-      .put(`/mod/broadcast/`, broadcast)
-      .then(this.fetchAllBroadcasts)
-      .then(this.closeModal)
-      .catch(this.handleRequestError)
-  }
-
-  handleModifyBroadcast = () => {
-    const broadcast = this.extractBroadcastFromModal()
-    const { broadcastId: id } = this.state
-
-    if (!broadcast) {
-      return
-    }
-
-    this.getAxios()
-      .post('/mod/broadcast/', { id, ...broadcast })
-      .then(this.fetchAllBroadcasts)
-      .then(this.closeModal)
-      .catch(this.handleRequestError)
   }
 
   handleRemoveBroadcast = id => {
@@ -195,61 +145,6 @@ export default class BroadcastModule extends React.Component {
         filteringConditions: broadcast.filteringConditions,
         progress: broadcast.progress
       }
-    })
-  }
-
-  handleContentChange = element => {
-    const newBroadcast = this.state.broadcast
-    newBroadcast.content = element.id
-    this.setState({
-      broadcast: newBroadcast
-    })
-  }
-
-  handleDateChange = value => {
-    const newBroadcast = this.state.broadcast
-    newBroadcast.date = value
-    this.setState({
-      broadcast: newBroadcast
-    })
-  }
-
-  handleTimeChange = value => {
-    const newBroadcast = this.state.broadcast
-    newBroadcast.time = value
-
-    this.setState({
-      broadcast: newBroadcast
-    })
-  }
-
-  handleUserTimezoneChange = () => {
-    const newBroadcast = this.state.broadcast
-    newBroadcast.userTimezone = !newBroadcast.userTimezone
-    this.setState({
-      broadcast: newBroadcast
-    })
-  }
-
-  handleAddToFilteringConditions = () => {
-    const input = ReactDOM.findDOMNode(this.filterInput)
-    if (input && input.value !== '') {
-      const newBroadcast = this.state.broadcast
-      newBroadcast.filteringConditions = _.concat(newBroadcast.filteringConditions, input.value)
-
-      this.setState({
-        broadcast: newBroadcast
-      })
-      input.value = ''
-    }
-  }
-
-  handleRemoveFromFilteringConditions = filter => {
-    const newBroadcast = this.state.broadcast
-    newBroadcast.filteringConditions = _.without(newBroadcast.filteringConditions, filter)
-
-    this.setState({
-      broadcast: newBroadcast
     })
   }
 
@@ -374,76 +269,6 @@ export default class BroadcastModule extends React.Component {
     )
   }
 
-  renderFormContent() {
-    const pickContent = () => window.botpress.pickContent({}, this.handleContentChange)
-
-    return (
-      <FormGroup controlId="formContent">
-        <Col componentClass={ControlLabel} sm={2}>
-          Content
-        </Col>
-        <Col sm={10}>
-          <InputGroup>
-            <InputGroup.Button>
-              <Button onClick={pickContent}>Pick Content</Button>
-            </InputGroup.Button>
-            <FormControl type="text" readOnly value={this.state.broadcast.content} />
-          </InputGroup>
-        </Col>
-      </FormGroup>
-    )
-  }
-
-  renderFormDate() {
-    const getISODate = date => {
-      if (date) {
-        return new Date(date).toISOString()
-      }
-      return new Date().toISOString()
-    }
-
-    return (
-      <FormGroup controlId="formDate">
-        <Col componentClass={ControlLabel} sm={2}>
-          Date
-        </Col>
-        <Col sm={10}>
-          <DatePicker value={getISODate(this.state.broadcast.date)} onChange={this.handleDateChange} />
-        </Col>
-      </FormGroup>
-    )
-  }
-
-  renderFormTime() {
-    return (
-      <FormGroup controlId="formTime">
-        <Col componentClass={ControlLabel} sm={2}>
-          Time
-        </Col>
-        <Col sm={10}>
-          <TimePicker step={15} onChange={this.handleTimeChange} value={this.state.broadcast.time} />
-        </Col>
-      </FormGroup>
-    )
-  }
-
-  renderFormUserTimezone() {
-    return (
-      <FormGroup controlId="formUserTimezone">
-        <Col componentClass={ControlLabel} sm={2}>
-          User time zone
-        </Col>
-        <Col sm={10}>
-          <Checkbox
-            name="userTimezone"
-            checked={this.state.broadcast.userTimezone}
-            onChange={this.handleUserTimezoneChange}
-          />
-        </Col>
-      </FormGroup>
-    )
-  }
-
   renderFilteringConditionElement = filter => {
     const removeHandler = () => this.handleRemoveFromFilteringConditions(filter)
 
@@ -455,47 +280,6 @@ export default class BroadcastModule extends React.Component {
     )
   }
 
-  renderFiltering() {
-    let filteringConditionElements = <ControlLabel>No filtering condition</ControlLabel>
-
-    const filters = this.state.broadcast.filteringConditions
-    if (filters && !_.isEmpty(filters)) {
-      filteringConditionElements = this.state.broadcast.filteringConditions.map(this.renderFilteringConditionElement)
-    }
-
-    return (
-      <div>
-        <FormGroup controlId="filtering">
-          <Col componentClass={ControlLabel} sm={2}>
-            Filtering conditions
-          </Col>
-          <Col sm={10}>{filteringConditionElements}</Col>
-        </FormGroup>
-        <FormGroup>
-          <Col smOffset={2} sm={10}>
-            <ControlLabel>Add a new filter:</ControlLabel>
-            <FormControl ref={input => (this.filterInput = input)} type="text" />
-            <Button className="bp-button" onClick={() => this.handleAddToFilteringConditions()}>
-              Add
-            </Button>
-          </Col>
-        </FormGroup>
-      </div>
-    )
-  }
-
-  renderForm() {
-    return (
-      <Form horizontal>
-        {this.renderFormContent()}
-        {this.renderFormDate()}
-        {this.renderFormTime()}
-        {this.renderFormUserTimezone()}
-        {this.renderFiltering()}
-      </Form>
-    )
-  }
-
   renderActionButton() {
     const onClickAction = this.state.modifyBroadcast ? this.handleModifyBroadcast : this.handleAddBroadcast
     const buttonName = this.state.modifyBroadcast ? 'Modify' : 'Create'
@@ -504,27 +288,6 @@ export default class BroadcastModule extends React.Component {
       <button className="bp-button" action="" onClick={onClickAction}>
         {buttonName}
       </button>
-    )
-  }
-
-  renderModalForm() {
-    return (
-      <Modal
-        container={document.getElementById('app')}
-        show={this.state.showModalForm}
-        onHide={this.handleCloseModalForm}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>{this.state.modifyBroadcast ? 'Modify broadcast...' : 'Create new broadcast...'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{this.renderForm()}</Modal.Body>
-        <Modal.Footer>
-          {this.renderActionButton()}
-          <button className="bp-button bp-button-danger" onClick={this.handleCloseModalForm}>
-            Cancel
-          </button>
-        </Modal.Footer>
-      </Modal>
     )
   }
 
@@ -555,6 +318,7 @@ export default class BroadcastModule extends React.Component {
     if (this.state.loading) {
       return null
     }
+    const { showModalForm, broadcastId, broadcast } = this.state
 
     const allBroadcasts = _.assign([], this.state.broadcasts)
     const hasSomeError = _.some(allBroadcasts, ['errored', true])
@@ -578,7 +342,12 @@ export default class BroadcastModule extends React.Component {
           {this.renderBroadcastsPanel('Past (last 3 days)', pastBroadcasts)}
           {this.renderBroadcastsPanel('Other broadcasts', allBroadcasts)}
         </Panel>
-        {this.renderModalForm()}
+        <BroadcastForm
+          handleCloseModalForm={handleCloseModalForm}
+          showModalForm={showModalForm}
+          broadcastId={broadcastId}
+          broadcast={broadcast}
+        />
       </div>
     )
   }
