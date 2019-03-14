@@ -16,6 +16,7 @@ import { Instruction, InstructionType, ProcessingResult } from '.'
 @injectable()
 export class StrategyFactory {
   create(type: InstructionType): InstructionStrategy {
+    console.log('type: ', type)
     if (type === 'on-enter' || type === 'on-receive') {
       return container.get<ActionStrategy>(TYPES.ActionStrategy)
     } else if (type === 'transition') {
@@ -43,6 +44,7 @@ export class ActionStrategy implements InstructionStrategy {
   ) {}
 
   async processInstruction(botId, instruction, event): Promise<ProcessingResult> {
+    console.log('ActionStrategy: ', instruction)
     if (instruction.fn.indexOf('say ') === 0) {
       return this.invokeOutputProcessor(botId, instruction, event)
     } else {
@@ -140,6 +142,7 @@ export class TransitionStrategy implements InstructionStrategy {
   ) {}
 
   async processInstruction(botId, instruction, event): Promise<ProcessingResult> {
+    console.log('TransitionStrategy: ', instruction)
     const conditionSuccessful = await this.runCode(instruction, {
       event,
       user: event.state.user,
@@ -180,6 +183,7 @@ export class TransitionStrategy implements InstructionStrategy {
 @injectable()
 export class WaitStrategy implements InstructionStrategy {
   async processInstruction(botId, instruction, event): Promise<ProcessingResult> {
+    console.log('WaitStrategy: ')
     return ProcessingResult.wait()
   }
 }

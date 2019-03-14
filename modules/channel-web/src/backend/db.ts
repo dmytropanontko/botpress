@@ -268,7 +268,6 @@ export default class WebchatDb {
     return query
       .whereNot({ message_type: 'visit' })
       .orderBy('sent_on', 'desc')
-      .limit(20)
       .then()
   }
 }

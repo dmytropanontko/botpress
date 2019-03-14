@@ -11,6 +11,7 @@ export class InstructionQueue {
   }
 
   enqueue(...instruction: Instruction[]) {
+    console.log('enqueue: ', instruction)
     this.instructions.push(...instruction)
   }
 

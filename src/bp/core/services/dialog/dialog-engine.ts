@@ -40,7 +40,7 @@ export class DialogEngine {
 
     const queueBuilder = new InstructionsQueueBuilder(currentNode, currentFlow)
     let queue: InstructionQueue
-
+    // console.log('context: ', context)
     if (context.queue) {
       queue = InstructionsQueueBuilder.fromInstructions(context.queue.instructions)
     } else if (context.hasJumped) {
@@ -62,6 +62,8 @@ export class DialogEngine {
     try {
       await converseApiEvents.emitAsync(`action.start.${event.target}`, event)
       const result = await this.instructionProcessor.process(botId, instruction, event)
+
+      console.log('result: ', result)
 
       if (result.followUpAction === 'none') {
         context.queue = queue
@@ -202,15 +204,19 @@ export class DialogEngine {
       const parentFlow = this._findFlow(event.botId, event.state.context.previousFlow!)
       const specificNode = transitionTo.split('#')[1]
       let parentNode
-
+      console.log('_transition: ', specificNode)
       if (specificNode) {
         parentNode = this._findNode(event.botId, parentFlow, specificNode)
       } else {
         parentNode = this._findNode(event.botId, parentFlow, event.state.context.previousNode!)
       }
 
+      console.log('parentNode: ', parentNode)
+
       const builder = new InstructionsQueueBuilder(parentNode, parentFlow)
       const queue = builder.onlyTransitions().build()
+
+      console.log('_transition queue: ', queue)
 
       context = {
         ...context,
